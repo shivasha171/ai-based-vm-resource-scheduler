@@ -1,0 +1,66 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>AI VM Resource Scheduler</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 40px; }
+        .container { max-width: 600px; margin: auto; }
+        input, button { padding: 10px; margin: 10px 0; width: 100%; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>AI-Based Resource Scheduler</h1>
+        <label>CPU Usage:</label>
+        <input type="number" id="cpu" placeholder="Enter CPU usage (e.g. 50)" />
+
+        <label>Memory Usage (GB):</label>
+        <input type="number" id="memory" placeholder="Enter memory usage (e.g. 4)" />
+
+        <button onclick="submitVM()">Predict & Allocate</button>
+
+        <div id="result"></div>
+
+        <h2>Host Status</h2>
+        <div id="hosts"></div>
+    </div>
+
+    <script>
+        async function submitVM() {
+            const cpu = parseFloat(document.getElementById('cpu').value);
+            const memory = parseFloat(document.getElementById('memory').value);
+
+            const res = await fetch('http://localhost:5000/predict', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ cpu_usage: cpu, memory_usage: memory })
+            });
+
+            const data = await res.json();
+            document.getElementById('result').innerHTML = `
+                <p><strong>VM ID:</strong> ${data.vm_id}</p>
+                <p><strong>Predicted CPU:</strong> ${data.predicted_cpu.toFixed(2)}</p>
+                <p><strong>Predicted Memory:</strong> ${data.predicted_memory.toFixed(2)}</p>
+                <p><strong>Allocated Host:</strong> ${data.allocated_host}</p>
+            `;
+            loadHosts();
+        }
+
+        async function loadHosts() {
+            const res = await fetch('http://localhost:5000/hosts');
+            const hosts = await res.json();
+            let html = '<table><tr><th>Host ID</th><th>Used CPU</th><th>Used Memory</th></tr>';
+            hosts.forEach(host => {
+                html += `<tr><td>${host.host_id}</td><td>${host.used_cpu.toFixed(2)}</td><td>${host.used_memory.toFixed(2)}</td></tr>`;
+            });
+            html += '</table>';
+            document.getElementById('hosts').innerHTML = html;
+        }
+
+        loadHosts();
+    </script>
+</body>
+</html>
